@@ -3,56 +3,57 @@ import copy
 
 app = Flask(__name__)
 
-WINDOW_SIZE = 10
-current_window = []
+WINDOW_LIMIT = 10
+current_list = []
 
 # Mock data to simulate fetched numbers
-mock_data = {
+sample_data = {
     'p': [2, 3, 5, 7, 11],    # Prime numbers
     'f': [1, 1, 2, 3, 5],     # Fibonacci numbers
     'e': [2, 4, 6, 8, 10],    # Even numbers
     'r': [6, 9, 12, 15, 18],  # Random numbers
 }
 
-def fetch_numbers(number_id):
-    return mock_data.get(number_id, None)
+def retrieve_numbers(id_type):
+    return sample_data.get(id_type, None)
 
-def update_window(new_numbers):
-    global current_window
-    previous_window = copy.deepcopy(current_window)
-    for num in new_numbers:
-        if num not in current_window:
-            if len(current_window) >= WINDOW_SIZE:
-                current_window.pop(0)
-            current_window.append(num)
-    return previous_window, current_window
+def refresh_window(new_list):
+    global current_list
+    previous_list = copy.deepcopy(current_list)
+    for number in new_list:
+        if number not in current_list:
+            if len(current_list) >= WINDOW_LIMIT:
+                current_list.pop(0)
+            current_list.append(number)
+    return previous_list, current_list
 
-def calculate_average(numbers):
+def compute_avg(numbers):
     if not numbers:
         return 0
     return sum(numbers) / len(numbers)
 
-@app.route('/numbers/<number_id>', methods=['GET'])
-def get_numbers(number_id):
-    number_id = number_id.lower()
+@app.route('/numbers/<id_type>', methods=['GET'])
+def get_and_process_numbers(id_type):
+    id_type = id_type.lower()
     
-    if number_id not in mock_data:
-        return jsonify({"error": "Invalid number ID"}), 400
+    if id_type not in sample_data:
+        return jsonify({"error": "Invalid number type"}), 400
 
-    numbers = fetch_numbers(number_id)
-    if numbers is None:
-        return jsonify({"error": "Failed to fetch numbers"}), 400
+    fetched_numbers = retrieve_numbers(id_type)
+    if fetched_numbers is None:
+        return jsonify({"error": "Failed to retrieve numbers"}), 400
     
-    prev_window, curr_window = update_window(numbers)
-    avg = calculate_average(curr_window)
+    previous_state, current_state = refresh_window(fetched_numbers)
+    average = compute_avg(current_state)
     
     response = {
-        "numbers": numbers,
-        "windowPrevState": prev_window,
-        "windowCurrState": curr_window,
-        "avg": round(avg, 2)
+        "numbers": fetched_numbers,
+        "windowPrevState": previous_state,
+        "windowCurrState": current_state,
+        "avg": round(average, 2)
     }
     return jsonify(response)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=9876, debug=True)
+
